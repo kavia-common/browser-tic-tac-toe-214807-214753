@@ -1,7 +1,16 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import './App.css';
 import ChatAssistant from './components/ChatAssistant';
 import ChatToggleButton from './components/ChatToggleButton';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link,
+} from 'react-router-dom';
+import { Leaderboard } from './leaderboard';
+import { usePlayerIdentity } from './hooks/usePlayerIdentity';
+import { recordMatchResult } from './game/recordResult';
 
 /**
  * Utility to calculate the winner and the winning line indices.
@@ -67,8 +76,7 @@ function Board({ squares, onSquareClick, winningLine }) {
   );
 }
 
-// PUBLIC_INTERFACE
-function App() {
+function GameCard() {
   /**
    * Game state
    */
@@ -108,18 +116,60 @@ function App() {
     : `Next Player: ${xIsNext ? 'X' : 'O'}`;
 
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const { name: displayName, setName: setDisplayName } = usePlayerIdentity();
+
+  // Names for X and O for this device/session. If one name, use as X; allow O entry as well.
+  const [nameX, setNameX] = useState('');
+  const [nameO, setNameO] = useState('');
+
+  useEffect(() => {
+    if (!nameX && displayName) setNameX(displayName);
+  }, [displayName, nameX]);
+
+  // On game over, persist result
+  useEffect(() => {
+    if (!winner && !isDraw) return;
+    const xName = nameX?.trim() || 'Player X';
+    const oName = nameO?.trim() || 'Player O';
+    recordMatchResult({
+      playerX: xName,
+      playerO: oName,
+      winner: winner ?? null,
+    });
+  }, [winner, isDraw, nameX, nameO]);
 
   return (
     <div className="app-root">
       <div className="game-card">
         <h1 className="title">Tic Tac Toe</h1>
 
+        <div className="actions" style={{ justifyContent: 'space-between', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <input
+              placeholder="Name for X"
+              value={nameX}
+              onChange={(e) => setNameX(e.target.value)}
+              className="btn"
+              style={{ padding: '8px 10px', minWidth: 120 }}
+            />
+            <input
+              placeholder="Name for O"
+              value={nameO}
+              onChange={(e) => setNameO(e.target.value)}
+              className="btn"
+              style={{ padding: '8px 10px', minWidth: 120 }}
+            />
+          </div>
+          <Link className="btn" to="/leaderboard" title="View Leaderboard">
+            Leaderboard
+          </Link>
+        </div>
+
         <div
-          className={`status-bar ${
-            winner ? 'status-win' : isDraw ? 'status-draw' : 'status-turn'
-          }`}
+          className={`status-bar ${winner ? 'status-win' : isDraw ? 'status-draw' : 'status-turn'}`}
           role="status"
           aria-live="polite"
+          style={{ marginTop: 12 }}
         >
           {status}
         </div>
@@ -153,6 +203,18 @@ function App() {
         nextPlayer={xIsNext ? 'X' : 'O'}
       />
     </div>
+  );
+}
+
+function App() {
+  // Router wrapper to provide navigation to Leaderboard
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<GameCard />} />
+        <Route path="/leaderboard" element={<Leaderboard />} />
+      </Routes>
+    </Router>
   );
 }
 
