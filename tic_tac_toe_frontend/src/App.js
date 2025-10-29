@@ -1,5 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import './App.css';
+import ChatAssistant from './components/ChatAssistant';
+import ChatToggleButton from './components/ChatToggleButton';
 
 /**
  * Utility to calculate the winner and the winning line indices.
@@ -105,6 +107,8 @@ function App() {
     ? 'Draw'
     : `Next Player: ${xIsNext ? 'X' : 'O'}`;
 
+  const [assistantOpen, setAssistantOpen] = useState(false);
+
   return (
     <div className="app-root">
       <div className="game-card">
@@ -136,6 +140,18 @@ function App() {
           X starts. Click an empty square to place your mark.
         </p>
       </div>
+
+      {/* Floating chat UI */}
+      <ChatToggleButton
+        isOpen={assistantOpen}
+        onToggle={() => setAssistantOpen((v) => !v)}
+      />
+      <ChatAssistant
+        isOpen={assistantOpen}
+        onClose={() => setAssistantOpen(false)}
+        board={squares}
+        nextPlayer={xIsNext ? 'X' : 'O'}
+      />
     </div>
   );
 }
